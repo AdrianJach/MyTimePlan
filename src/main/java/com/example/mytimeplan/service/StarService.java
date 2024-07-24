@@ -2,6 +2,8 @@ package com.example.mytimeplan.service;
 
 import com.example.mytimeplan.model.Star;
 import com.example.mytimeplan.repository.StarRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 @Service
 public class StarService {
 
+    private static final Logger logger = LoggerFactory.getLogger(StarService.class);
     private final StarRepository starRepository;
 
     /**
@@ -42,6 +45,7 @@ public class StarService {
         if (stars == null || stars.isEmpty()) {
             throw new IllegalArgumentException("Star list cannot be null or empty");
         }
+        logger.info("Finding the closest {} stars from a list of {} stars", size, stars.size());
         return stars.stream()
                 .sorted(Comparator.comparingLong(Star::getDistance))
                 .limit(size)
@@ -60,6 +64,7 @@ public class StarService {
         if (stars == null || stars.isEmpty()) {
             throw new IllegalArgumentException("Star list cannot be null or empty");
         }
+        logger.info("Calculating the number of stars by their distances");
         return stars.stream()
                 .collect(Collectors.groupingBy(Star::getDistance, TreeMap::new, Collectors.reducing(0, e -> 1, Integer::sum)));
     }
@@ -76,6 +81,7 @@ public class StarService {
         if (stars == null || stars.isEmpty()) {
             throw new IllegalArgumentException("Star collection cannot be null or empty");
         }
+        logger.info("Getting unique stars from a collection of {} stars", stars.size());
         return new LinkedHashSet<>(stars);
     }
 
@@ -88,8 +94,12 @@ public class StarService {
      */
     @Transactional(readOnly = true)
     public Star getStarById(Long id) {
+        logger.info("Fetching star with id: {}", id);
         return starRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Star not found with id: " + id));
+                .orElseThrow(() -> {
+                    logger.error("Star not found with id: {}", id);
+                    return new NoSuchElementException("Star not found with id: " + id);
+                });
     }
 
     /**
@@ -100,6 +110,10 @@ public class StarService {
      */
     @Transactional
     public Star addStar(Star star) {
+        if (star.getName().length() < 3) {
+            throw new IllegalArgumentException("Star name must be at least 3 characters long");
+        }
+        logger.info("Adding a new star with name: {}", star.getName());
         return starRepository.save(star);
     }
 
@@ -116,6 +130,7 @@ public class StarService {
         Star existingStar = getStarById(id);
         existingStar.setName(star.getName());
         existingStar.setDistance(star.getDistance());
+        logger.info("Updating star with id: {}", id);
         return starRepository.save(existingStar);
     }
 
@@ -126,6 +141,7 @@ public class StarService {
      */
     @Transactional
     public void deleteStar(Long id) {
+        logger.info("Deleting star with id: {}", id);
         starRepository.deleteById(id);
     }
 }

@@ -3,3 +3,12 @@ spring:
     name: MyTimePlan
   cache:
     type: simple
+
+logging:
+  level:
+    root: INFO
+    com:
+      example:
+        mytimeplan: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
